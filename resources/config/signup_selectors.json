@@ -1,0 +1,66 @@
+{
+  "signupUrls": [
+    "https://signup.live.com/signup",
+    "https://signup.live.com/",
+    "https://outlook.live.com/owa/?nlp=1&signup=1"
+  ],
+  "nextStepButtons": [
+    "button[data-testid='primaryButton']",
+    "#iSignupAction",
+    "input[type='submit']",
+    "button[type='submit']"
+  ],
+  "emailFields": [
+    "input[name='MemberName']",
+    "input[name='Email']",
+    "input[type='email']",
+    "#MemberName",
+    "#EmailInput",
+    "input[id*='username']"
+  ],
+  "passwordFields": [
+    "input[name='PasswordInput']",
+    "input[name='Password']",
+    "input[type='password']",
+    "#PasswordInput"
+  ],
+  "firstNameFields": [
+    "input[name='FirstName']",
+    "#FirstName"
+  ],
+  "lastNameFields": [
+    "input[name='LastName']",
+    "#LastName"
+  ],
+  "birthMonthFields": [
+    "select[name='BirthMonth']",
+    "#BirthMonth"
+  ],
+  "birthDayFields": [
+    "select[name='BirthDay']",
+    "#BirthDay"
+  ],
+  "birthYearFields": [
+    "select[name='BirthYear']",
+    "#BirthYear"
+  ],
+  "submitButtons": [
+    "button[data-testid='primaryButton']",
+    "#iSignupAction",
+    "input[type='submit']",
+    "button[type='submit']"
+  ],
+  "captchaMarkers": [
+    "iframe[src*='captcha']",
+    "iframe[src*='hsprotect']",
+    "#enforcementFrame",
+    "#hipEnforcementContainer",
+    "motion.captcha"
+  ],
+  "otpFields": [
+    "input[name='otc']",
+    "input[type='tel']",
+    "#iOttText",
+    "input[aria-label*='code']"
+  ]
+}

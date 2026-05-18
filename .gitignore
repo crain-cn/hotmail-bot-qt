@@ -1,0 +1,8 @@
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+*.user
+*.autosave
+HotmailBotQt.app/

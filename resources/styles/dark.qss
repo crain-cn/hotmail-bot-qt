@@ -1,0 +1,136 @@
+QWidget#mainWindow,
+QWidget#centralPanel {
+    background-color: #1e1e1e;
+    color: #d2d2d2;
+    font-family: "Segoe UI", "PingFang SC", sans-serif;
+    font-size: 10pt;
+}
+
+QWidget#titleBar {
+    background-color: #141414;
+}
+
+QLabel#windowTitle,
+QLabel#sectionTitle {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+QPushButton#minButton,
+QPushButton#maxButton {
+    background-color: #141414;
+    color: #ffffff;
+    border: none;
+}
+
+QPushButton#minButton:hover,
+QPushButton#maxButton:hover {
+    background-color: #181818;
+}
+
+QPushButton#closeButton {
+    background-color: #7c0e0e;
+    color: #ffffff;
+    border: none;
+}
+
+QPushButton#closeButton:hover {
+    background-color: #600e0e;
+}
+
+QPushButton#secondaryButton,
+QPushButton#startButton {
+    background-color: #0e0e0e;
+    color: #d2d2d2;
+    border: 1px solid #323232;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+QPushButton#secondaryButton:hover,
+QPushButton#startButton:hover {
+    background-color: #121212;
+}
+
+QPushButton#startButton {
+    font-size: 12pt;
+}
+
+QCheckBox {
+    spacing: 8px;
+    color: #d2d2d2;
+}
+
+QCheckBox::indicator {
+    width: 14px;
+    height: 14px;
+    border: 1px solid #323232;
+    background: #121212;
+}
+
+QCheckBox::indicator:checked {
+    background: #d2d2d2;
+}
+
+QLineEdit#configField,
+QComboBox,
+QSpinBox,
+QPlainTextEdit,
+QListWidget#featureList,
+QGroupBox#proxyGroup,
+QPlainTextEdit#logView {
+    background-color: #141414;
+    color: #d2d2d2;
+    border: 1px solid #323232;
+    border-radius: 4px;
+    padding: 4px;
+    selection-background-color: #3a3a3a;
+}
+
+QGroupBox#proxyGroup {
+    margin-top: 12px;
+    font-weight: 600;
+}
+
+QGroupBox#proxyGroup::title {
+    subcontrol-origin: margin;
+    left: 8px;
+    padding: 0 4px;
+    color: #d2d2d2;
+}
+
+QProgressBar#taskProgress {
+    background-color: #141414;
+    border: 1px solid #0a0a0a;
+    border-radius: 3px;
+    min-height: 20px;
+    max-height: 20px;
+}
+
+QProgressBar#taskProgress::chunk {
+    background-color: #222222;
+    border-radius: 2px;
+}
+
+QListWidget#featureList::item:selected {
+    background-color: #2a2a2a;
+    color: #d2d2d2;
+}
+
+QTableWidget#accountTable {
+    background-color: #141414;
+    color: #d2d2d2;
+    border: 1px solid #323232;
+    gridline-color: #282828;
+}
+
+QTableWidget#accountTable::item {
+    padding: 2px;
+}
+
+QHeaderView::section {
+    background-color: #1a1a1a;
+    color: #d2d2d2;
+    border: 1px solid #323232;
+    padding: 4px;
+}

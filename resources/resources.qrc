@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>styles/dark.qss</file>
+        <file>config/signup_selectors.json</file>
+    </qresource>
+</RCC>
