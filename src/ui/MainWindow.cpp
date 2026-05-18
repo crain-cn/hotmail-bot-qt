@@ -161,10 +161,12 @@ void MainWindow::setupUi()
     leftColumn->addWidget(m_featureList);
     leftColumn->addStretch();
 
-    auto *middleColumn = new QVBoxLayout();
+    auto *middleScrollContent = new QWidget(body);
+    auto *middleColumn = new QVBoxLayout(middleScrollContent);
+    middleColumn->setContentsMargins(0, 0, 4, 0);
     middleColumn->setSpacing(8);
 
-    m_batchCombo = new QComboBox(body);
+    m_batchCombo = new QComboBox(middleScrollContent);
     m_batchCombo->addItems({QStringLiteral("1-5"),
                             QStringLiteral("10-50"),
                             QStringLiteral("100-500"),
@@ -172,55 +174,56 @@ void MainWindow::setupUi()
     m_batchCombo->setFixedWidth(105);
     middleColumn->addWidget(m_batchCombo);
 
-    m_browserCombo = new QComboBox(body);
+    m_browserCombo = new QComboBox(middleScrollContent);
     m_browserCombo->addItems({QStringLiteral("Mock"), QStringLiteral("WebDriver")});
     m_browserCombo->setFixedWidth(105);
     middleColumn->addWidget(m_browserCombo);
 
-    m_webDriverUrlEdit = makeLabeledField(QStringLiteral("Driver URL"), body);
+    m_webDriverUrlEdit = makeLabeledField(QStringLiteral("Driver URL"), middleScrollContent);
     m_webDriverUrlEdit->setText(QStringLiteral("http://127.0.0.1:9515"));
     middleColumn->addWidget(m_webDriverUrlEdit);
 
-    m_headlessCheck = new QCheckBox(QStringLiteral("Headless"), body);
+    m_headlessCheck = new QCheckBox(QStringLiteral("Headless"), middleScrollContent);
     m_headlessCheck->setChecked(true);
     middleColumn->addWidget(m_headlessCheck);
 
-    m_captchaCombo = new QComboBox(body);
+    m_captchaCombo = new QComboBox(middleScrollContent);
     m_captchaCombo->addItems(
         {QStringLiteral("Captcha: Skip"), QStringLiteral("Captcha: Manual"), QStringLiteral("Captcha: API")});
     m_captchaCombo->setFixedWidth(150);
     middleColumn->addWidget(m_captchaCombo);
 
-    m_captchaApiKeyEdit = makeLabeledField(QStringLiteral("Captcha API"), body);
+    m_captchaApiKeyEdit = makeLabeledField(QStringLiteral("Captcha API"), middleScrollContent);
     middleColumn->addWidget(m_captchaApiKeyEdit);
 
-    m_retrySpin = new QSpinBox(body);
+    m_retrySpin = new QSpinBox(middleScrollContent);
     m_retrySpin->setRange(1, 5);
     m_retrySpin->setValue(2);
     m_retrySpin->setPrefix(QStringLiteral("Retry "));
     m_retrySpin->setFixedWidth(90);
     middleColumn->addWidget(m_retrySpin);
 
-    m_delayEdit = makeLabeledField(QStringLiteral("Delay"), body);
-    m_botsEdit = makeLabeledField(QStringLiteral("Bots"), body);
-    m_apiKeyEdit = makeLabeledField(QStringLiteral("Api Key"), body);
-    m_tempMailEdit = makeLabeledField(QStringLiteral("TempMail URL"), body);
+    m_delayEdit = makeLabeledField(QStringLiteral("Delay"), middleScrollContent);
+    m_botsEdit = makeLabeledField(QStringLiteral("Bots"), middleScrollContent);
+    m_apiKeyEdit = makeLabeledField(QStringLiteral("Api Key"), middleScrollContent);
+    m_tempMailEdit = makeLabeledField(QStringLiteral("TempMail URL"), middleScrollContent);
     m_tempMailEdit->setPlaceholderText(QStringLiteral("https://api.example/inbox?email={email}"));
     middleColumn->addWidget(m_delayEdit);
     middleColumn->addWidget(m_botsEdit);
     middleColumn->addWidget(m_apiKeyEdit);
     middleColumn->addWidget(m_tempMailEdit);
 
-    m_numericSpin = new QSpinBox(body);
+    m_numericSpin = new QSpinBox(middleScrollContent);
     m_numericSpin->setRange(0, 9999999);
     m_numericSpin->setFixedSize(75, 30);
     middleColumn->addWidget(m_numericSpin);
-
-    m_startButton = new QPushButton(QStringLiteral("Start"), body);
-    m_startButton->setObjectName(QStringLiteral("startButton"));
-    m_startButton->setFixedSize(200, 95);
     middleColumn->addStretch();
-    middleColumn->addWidget(m_startButton, 0, Qt::AlignHCenter);
+
+    auto *middleScroll = new QScrollArea(body);
+    middleScroll->setWidget(middleScrollContent);
+    middleScroll->setWidgetResizable(true);
+    middleScroll->setFrameShape(QFrame::NoFrame);
+    middleScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     auto *centerColumn = new QVBoxLayout();
     m_proxyGroup = new QGroupBox(QStringLiteral("Proxy"), body);
@@ -248,9 +251,21 @@ void MainWindow::setupUi()
     }
 
     bodyLayout->addLayout(leftColumn, 1);
-    bodyLayout->addLayout(middleColumn, 0);
+    bodyLayout->addWidget(middleScroll, 2);
     bodyLayout->addLayout(centerColumn, 0);
     bodyLayout->addLayout(rightColumn, 1);
+
+    auto *startBar = new QWidget(central);
+    startBar->setObjectName(QStringLiteral("startBar"));
+    startBar->setFixedHeight(kStartBarHeight);
+    auto *startLayout = new QHBoxLayout(startBar);
+    startLayout->setContentsMargins(16, 8, 16, 8);
+    m_startButton = new QPushButton(QStringLiteral("Start"), startBar);
+    m_startButton->setObjectName(QStringLiteral("startButton"));
+    m_startButton->setFixedSize(220, 88);
+    startLayout->addStretch();
+    startLayout->addWidget(m_startButton);
+    startLayout->addStretch();
 
     m_accountTable = new QTableWidget(central);
     m_accountTable->setObjectName(QStringLiteral("accountTable"));
@@ -274,6 +289,7 @@ void MainWindow::setupUi()
     m_logView->setPlaceholderText(QStringLiteral("Logs..."));
 
     rootLayout->addWidget(body, 1);
+    rootLayout->addWidget(startBar);
     rootLayout->addWidget(m_accountTable);
     rootLayout->addWidget(m_logView);
 

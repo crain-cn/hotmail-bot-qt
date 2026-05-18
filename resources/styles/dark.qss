@@ -38,8 +38,7 @@ QPushButton#closeButton:hover {
     background-color: #600e0e;
 }
 
-QPushButton#secondaryButton,
-QPushButton#startButton {
+QPushButton#secondaryButton {
     background-color: #0e0e0e;
     color: #d2d2d2;
     border: 1px solid #323232;
@@ -47,13 +46,30 @@ QPushButton#startButton {
     font-weight: 600;
 }
 
-QPushButton#secondaryButton:hover,
-QPushButton#startButton:hover {
+QPushButton#secondaryButton:hover {
     background-color: #121212;
 }
 
+QWidget#startBar {
+    background-color: #181818;
+    border-top: 1px solid #323232;
+}
+
 QPushButton#startButton {
-    font-size: 12pt;
+    background-color: #1f6feb;
+    color: #ffffff;
+    border: 1px solid #388bfd;
+    border-radius: 6px;
+    font-size: 14pt;
+    font-weight: 700;
+}
+
+QPushButton#startButton:hover {
+    background-color: #388bfd;
+}
+
+QPushButton#startButton:pressed {
+    background-color: #1158c7;
 }
 
 QCheckBox {
