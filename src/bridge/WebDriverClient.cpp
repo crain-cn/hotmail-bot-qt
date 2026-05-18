@@ -23,16 +23,92 @@ QString normalizedBase(QString url)
     return url;
 }
 
+QByteArray stripBom(QByteArray raw)
+{
+    if (raw.startsWith("\xEF\xBB\xBF")) {
+        raw.remove(0, 3);
+    }
+    return raw;
+}
+
+QByteArray requestPayload(const QJsonObject &body)
+{
+    if (body.isEmpty()) {
+        return QByteArrayLiteral("{}");
+    }
+    return QJsonDocument(body).toJson(QJsonDocument::Compact);
+}
+
+QString parseFailureHint(const QByteArray &raw, int status)
+{
+    const QString prefix = QString::fromUtf8(raw.left(120)).trimmed();
+    if (prefix.startsWith(QLatin1Char('<'))
+        || prefix.contains(QStringLiteral("<!DOCTYPE"), Qt::CaseInsensitive)
+        || prefix.contains(QStringLiteral("<html"), Qt::CaseInsensitive)) {
+        return QStringLiteral(
+            " Response is HTML, not JSON. Check Driver URL (use http://127.0.0.1:9515) and ensure ChromeDriver is running.");
+    }
+    if (raw.contains("Infinity") || raw.contains("NaN")) {
+        return QStringLiteral(
+            " Response contains non-standard JSON numbers. The endpoint may not be ChromeDriver.");
+    }
+    if (status == 0) {
+        return QStringLiteral(" No HTTP status received. Is ChromeDriver running?");
+    }
+    return {};
+}
+
 QString elementIdFromResponse(const QJsonObject &response)
 {
     const QJsonValue value = response.value(QStringLiteral("value"));
     if (value.isString()) {
         return value.toString();
     }
-    if (value.isObject()) {
-        return value.toObject().value(QStringLiteral("ELEMENT")).toString();
+    if (!value.isObject()) {
+        return {};
+    }
+
+    const QJsonObject obj = value.toObject();
+    const QString legacy = obj.value(QStringLiteral("ELEMENT")).toString();
+    if (!legacy.isEmpty()) {
+        return legacy;
+    }
+
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        if (it.value().isString()) {
+            return it.value().toString();
+        }
     }
     return {};
+}
+
+QString webDriverErrorMessage(const QJsonObject &obj, int status)
+{
+    const QJsonValue value = obj.value(QStringLiteral("value"));
+    if (value.isObject()) {
+        const QJsonObject errorObj = value.toObject();
+        const QString message = errorObj.value(QStringLiteral("message")).toString();
+        if (!message.isEmpty()) {
+            return message;
+        }
+    }
+    if (value.isString() && !value.toString().isEmpty()) {
+        return value.toString();
+    }
+    return QStringLiteral("WebDriver HTTP %1").arg(status);
+}
+
+QJsonObject buildTypeTextBody(const QString &text)
+{
+    QJsonArray chars;
+    for (const QChar ch : text) {
+        chars.append(QString(ch));
+    }
+
+    QJsonObject body;
+    body.insert(QStringLiteral("text"), text);
+    body.insert(QStringLiteral("value"), chars);
+    return body;
 }
 
 } // namespace
@@ -44,16 +120,32 @@ WebDriverClient::WebDriverClient(QString baseUrl)
 
 bool WebDriverClient::isReachable(QString *error) const
 {
-    QJsonObject ignored;
-    return request(QStringLiteral("GET"), QStringLiteral("/status"), {}, &ignored, error);
+    QJsonObject response;
+    if (!request(QStringLiteral("GET"), QStringLiteral("/status"), {}, &response, error)) {
+        return false;
+    }
+
+    const bool ready = response.value(QStringLiteral("value")).toObject().value(QStringLiteral("ready")).toBool();
+    if (!ready) {
+        if (error) {
+            *error = QStringLiteral("ChromeDriver is not ready.");
+        }
+        return false;
+    }
+    return true;
 }
 
 bool WebDriverClient::createSession(const QJsonObject &capabilities,
                                     QString *sessionId,
                                     QString *error)
 {
+    QJsonObject caps = capabilities;
+    if (!caps.contains(QStringLiteral("firstMatch"))) {
+        caps.insert(QStringLiteral("firstMatch"), QJsonArray{QJsonObject{}});
+    }
+
     QJsonObject body;
-    body.insert(QStringLiteral("capabilities"), capabilities);
+    body.insert(QStringLiteral("capabilities"), caps);
 
     QJsonObject response;
     if (!request(QStringLiteral("POST"), QStringLiteral("/session"), body, &response, error)) {
@@ -61,7 +153,10 @@ bool WebDriverClient::createSession(const QJsonObject &capabilities,
     }
 
     const QJsonObject value = response.value(QStringLiteral("value")).toObject();
-    const QString id = value.value(QStringLiteral("sessionId")).toString();
+    QString id = value.value(QStringLiteral("sessionId")).toString();
+    if (id.isEmpty()) {
+        id = response.value(QStringLiteral("sessionId")).toString();
+    }
     if (id.isEmpty()) {
         if (error) {
             *error = QStringLiteral("WebDriver sessionId missing in response.");
@@ -134,8 +229,7 @@ bool WebDriverClient::typeText(const QString &sessionId,
                                const QString &text,
                                QString *error) const
 {
-    QJsonObject body;
-    body.insert(QStringLiteral("text"), text);
+    const QJsonObject body = buildTypeTextBody(text);
     QJsonObject ignored;
     return request(QStringLiteral("POST"),
                    QStringLiteral("/session/") + sessionId + QStringLiteral("/element/")
@@ -191,7 +285,7 @@ bool WebDriverClient::waitForElement(const QString &sessionId,
                 *elementId = foundId;
             }
             if (error) {
-                *error = QString();
+                error->clear();
             }
             return true;
         }
@@ -254,8 +348,8 @@ bool WebDriverClient::getPageSource(const QString &sessionId, QString *source, Q
 }
 
 bool WebDriverClient::saveScreenshot(const QString &sessionId,
-                                       const QString &filePath,
-                                       QString *error) const
+                                     const QString &filePath,
+                                     QString *error) const
 {
     QJsonObject response;
     if (!request(QStringLiteral("GET"),
@@ -285,17 +379,20 @@ bool WebDriverClient::setSelectValue(const QString &sessionId,
                                      const QString &value,
                                      QString *error) const
 {
-    const QString escapedValue = value;
-    const QString script = QStringLiteral(
-                               "var el=document.querySelector('%1');"
-                               "if(!el){return false;}"
-                               "el.value='%2';"
-                               "el.dispatchEvent(new Event('change',{bubbles:true}));"
-                               "return true;")
-                               .arg(cssSelector, escapedValue);
+    QJsonArray args;
+    args.append(cssSelector);
+    args.append(value);
 
     QJsonObject response;
-    if (!executeScript(sessionId, script, &response, error)) {
+    if (!executeScript(sessionId,
+                       QStringLiteral("var el=document.querySelector(arguments[0]);"
+                                      "if(!el){return false;}"
+                                      "el.value=arguments[1];"
+                                      "el.dispatchEvent(new Event('change',{bubbles:true}));"
+                                      "return true;"),
+                       args,
+                       &response,
+                       error)) {
         return false;
     }
 
@@ -326,12 +423,13 @@ bool WebDriverClient::clickNextIfPresent(const QString &sessionId,
 
 bool WebDriverClient::executeScript(const QString &sessionId,
                                     const QString &script,
+                                    const QJsonArray &args,
                                     QJsonObject *response,
                                     QString *error) const
 {
     QJsonObject body;
     body.insert(QStringLiteral("script"), script);
-    body.insert(QStringLiteral("args"), QJsonArray{});
+    body.insert(QStringLiteral("args"), args);
     return request(QStringLiteral("POST"),
                    QStringLiteral("/session/") + sessionId + QStringLiteral("/execute/sync"),
                    body,
@@ -348,10 +446,10 @@ bool WebDriverClient::request(const QString &method,
     QNetworkAccessManager manager;
     const QUrl url(m_baseUrl + path);
     QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json; charset=utf-8"));
 
     QNetworkReply *reply = nullptr;
-    const QByteArray payload = body.isEmpty() ? QByteArray() : QJsonDocument(body).toJson();
+    const QByteArray payload = (method == QStringLiteral("POST")) ? requestPayload(body) : QByteArray();
 
     if (method == QStringLiteral("GET")) {
         reply = manager.get(request);
@@ -371,7 +469,7 @@ bool WebDriverClient::request(const QString &method,
     loop.exec();
 
     const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    const QByteArray raw = reply->readAll();
+    const QByteArray raw = stripBom(reply->readAll());
     const auto networkError = reply->error();
     const QString networkMessage = reply->errorString();
     reply->deleteLater();
@@ -383,29 +481,51 @@ bool WebDriverClient::request(const QString &method,
         return false;
     }
 
-    QJsonParseError parseError;
-    const QJsonDocument doc = QJsonDocument::fromJson(raw, &parseError);
-    if (!doc.isObject()) {
-        if (status >= 200 && status < 300 && raw.isEmpty()) {
+    if (raw.isEmpty()) {
+        if (status >= 200 && status < 300) {
             if (response) {
                 *response = {};
             }
             return true;
         }
         if (error) {
-            *error = QStringLiteral("Invalid WebDriver JSON: %1").arg(parseError.errorString());
+            *error = QStringLiteral("Empty WebDriver response (HTTP %1) for %2")
+                         .arg(status)
+                         .arg(path);
+        }
+        return false;
+    }
+
+    QJsonParseError parseError;
+    const QJsonDocument doc = QJsonDocument::fromJson(raw, &parseError);
+    if (!doc.isObject()) {
+        if (error) {
+            *error = QStringLiteral("Invalid WebDriver JSON (%1, HTTP %2): %3.%4")
+                         .arg(parseError.errorString())
+                         .arg(status)
+                         .arg(QString::fromUtf8(raw.left(160)))
+                         .arg(parseFailureHint(raw, status));
         }
         return false;
     }
 
     const QJsonObject obj = doc.object();
     if (status >= 400) {
-        const QJsonObject value = obj.value(QStringLiteral("value")).toObject();
-        const QString message = value.value(QStringLiteral("message")).toString();
         if (error) {
-            *error = message.isEmpty() ? QStringLiteral("WebDriver HTTP %1").arg(status) : message;
+            *error = webDriverErrorMessage(obj, status);
         }
         return false;
+    }
+
+    const QJsonValue value = obj.value(QStringLiteral("value"));
+    if (value.isObject()) {
+        const QJsonObject valueObj = value.toObject();
+        if (valueObj.contains(QStringLiteral("error"))) {
+            if (error) {
+                *error = webDriverErrorMessage(obj, status > 0 ? status : 500);
+            }
+            return false;
+        }
     }
 
     if (response) {

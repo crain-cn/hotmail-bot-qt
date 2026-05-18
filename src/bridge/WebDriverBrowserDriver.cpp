@@ -45,6 +45,7 @@ QJsonObject buildCapabilities(const QString &proxy, bool headless)
 
     QJsonObject capabilities;
     capabilities.insert(QStringLiteral("alwaysMatch"), alwaysMatch);
+    capabilities.insert(QStringLiteral("firstMatch"), QJsonArray{QJsonObject{}});
     return capabilities;
 }
 

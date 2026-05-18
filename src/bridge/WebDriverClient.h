@@ -45,6 +45,7 @@ public:
 private:
     bool executeScript(const QString &sessionId,
                        const QString &script,
+                       const QJsonArray &args,
                        QJsonObject *response,
                        QString *error) const;
     bool request(const QString &method,
