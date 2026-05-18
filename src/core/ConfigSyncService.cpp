@@ -7,7 +7,7 @@ namespace {
 QString defaultGithubSelectorsUrl()
 {
     return QStringLiteral(
-        "https://raw.githubusercontent.com/SeseydOw/Hotmail-Outlook-Create-Account-Register-Auto/main/hotmail-bot-qt/resources/config/signup_selectors.json");
+        "https://raw.githubusercontent.com/crain-cn/hotmail-bot-qt/main/resources/config/signup_selectors.json");
 }
 
 } // namespace

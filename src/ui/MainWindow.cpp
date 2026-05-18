@@ -8,6 +8,7 @@
 #include <QCheckBox>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QFrame>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -18,6 +19,7 @@
 #include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QSpinBox>
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -25,8 +27,9 @@
 namespace {
 
 constexpr int kWindowWidth = 800;
-constexpr int kWindowHeight = 620;
+constexpr int kWindowHeight = 720;
 constexpr int kProgressBarCount = 10;
+constexpr int kStartBarHeight = 104;
 
 QLineEdit *makeLabeledField(const QString &placeholder, QWidget *parent)
 {
